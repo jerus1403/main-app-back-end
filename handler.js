@@ -2,7 +2,7 @@
 const AWS = require("aws-sdk");
 const s3 = new AWS.S3();
 
-module.exports.requestUploadURL = (req, res) => {
+module.exports.requestUploadURL = (req, res, callback) => {
   const jsonData = JSON.parse(req.body);
   const bufferedData = new Buffer.from(jsonData.data, "base64");
   console.log(jsonData, "DATA");
@@ -16,9 +16,17 @@ module.exports.requestUploadURL = (req, res) => {
   };
   s3.putObject(params, (err, data) => {
     if (err) {
-      return err;
+      callback(err, null);
     } else {
-      return data;
+      let response = {
+        statusCode: 200,
+        headers: {
+          my_header: "my_value"
+        },
+        body: JSON.stringify(data),
+        isBase64Encoded: false
+      };
+      callback(null, response);
     }
   });
 };
