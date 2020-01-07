@@ -14,6 +14,7 @@
 service: awe-service-api # NOTE: update this with your service name
 custom:
   secrets: ${file(secrets.json)}
+  tableName: main-app-posts
 #app: your-app-name
 #tenant: your-tenant-name
 
@@ -28,6 +29,7 @@ provider:
   region: us-east-1
   environment:
     NODE_ENV: ${self:custom.secrets.NODE_ENV}
+    tableName: ${self:custom.tableName}
     # Provide permissions for this service to manipulate S3.
   iamRoleStatements:
     - Effect: "Allow"
@@ -35,7 +37,12 @@ provider:
         - s3:Upload
         - s3:PutObject
         - s3:PutObjectAcl
-      Resource: "arn:aws:s3:::profile-image-main-app/*"
+        - s3:GetObject
+      Resource: "arn:aws:s3:::profile-image-main-app/"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:*
+      Resource: "*"
   # you can add statements to the Lambda function's IAM Role here
   #  iamRoleStatements:
   #    - Effect: "Allow"
@@ -71,8 +78,21 @@ functions:
     events:
       - http:
           path: requestUploadURL
-          method: post
-      - s3: profile-image-main-app
+          method: POST
+          cors: true
+  # getUserProfileImageURL:
+  #   handler: handler.getUserProfileImageURL
+  #   events:
+  #     - http:
+  #         path: getUserProfileImageURL
+  #         method: get
+  addPost:
+    handler: lambdas/endpoints/addPost.handler
+    events:
+      - http:
+          path: add-post
+          method: POST
+          cors: true
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
@@ -156,3 +176,18 @@ resources:
                 - "*"
               AllowedHeaders:
                 - "*"
+    DynamoDbTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:custom.tableName}
+        AttributeDefinitions:
+          - AttributeName: postId
+            AttributeType: S
+          - AttributeName: userId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: postId
+            KeyType: HASH
+          - AttributeName: userId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
