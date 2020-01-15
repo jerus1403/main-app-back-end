@@ -15,6 +15,8 @@ service: awe-service-api # NOTE: update this with your service name
 custom:
   secrets: ${file(secrets.json)}
   tableName: main-app-posts
+  profileBucket: profile-image-main-app
+  postImageBucket: post-images-main-app
 #app: your-app-name
 #tenant: your-tenant-name
 
@@ -30,18 +32,21 @@ provider:
   environment:
     NODE_ENV: ${self:custom.secrets.NODE_ENV}
     tableName: ${self:custom.tableName}
+    profileBucket: ${self:custom.profileBucket}
+    postImageBucket: ${self:custom.postImageBucket}
     # Provide permissions for this service to manipulate S3.
   iamRoleStatements:
-    - Effect: "Allow"
-      Action:
-        - s3:Upload
-        - s3:PutObject
-        - s3:PutObjectAcl
-        - s3:GetObject
-      Resource: "arn:aws:s3:::profile-image-main-app/"
+    # - Effect: "Allow"
+    #   Action:
+    #     - s3:Upload
+    #     - s3:PutObject
+    #     - s3:PutObjectAcl
+    #     - s3:GetObject
+    #   Resource: "arn:aws:s3:::profile-image-main-app/"
     - Effect: "Allow"
       Action:
         - dynamodb:*
+        - s3:*
       Resource: "*"
   # you can add statements to the Lambda function's IAM Role here
   #  iamRoleStatements:
@@ -92,6 +97,13 @@ functions:
       - http:
           path: add-post
           method: POST
+          cors: true
+  getUserPost:
+    handler: lambdas/endpoints/getUserPost.handler
+    events:
+      - http:
+          path: get-user-posts/{ID}
+          method: GET
           cors: true
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
@@ -163,7 +175,23 @@ resources:
     UploadBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: profile-image-main-app
+        BucketName: ${self:custom.profileBucket}
+        AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+                - GET
+                - PUT
+                - POST
+                - HEAD
+              AllowedOrigins:
+                - "*"
+              AllowedHeaders:
+                - "*"
+    PostImageBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.postImageBucket}
         AccessControl: PublicRead
         CorsConfiguration:
           CorsRules:
@@ -191,3 +219,12 @@ resources:
           - AttributeName: userId
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
+        GlobalSecondaryIndexes:
+          - IndexName: userPosts
+            KeySchema:
+              - AttributeName: userId
+                KeyType: HASH
+              - AttributeName: postId
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL
