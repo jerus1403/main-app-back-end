@@ -1,31 +1,65 @@
 const AWS = require("aws-sdk");
+const s3Client = new AWS.S3();
 
 const documentClient = new AWS.DynamoDB.DocumentClient();
 
 const Dynamo = {
-  async get(ID, TableName) {
+  async getUserPost(ID, TableName) {
     const params = {
       TableName,
-      Key: {
-        ID
+      IndexName: "userPosts",
+      KeyConditionExpression: "userId = :ID",
+      ExpressionAttributeValues: {
+        ":ID": ID
       }
     };
-    const data = await documentClient.get(params).promise();
-    if (!data || !data.Item) {
-      throw Error(
-        `There was a problem fetching data for ${ID} from ${TableName}.`
-      );
-    }
-    console.log(data.Item);
-    return data.Item;
+
+    const result = await new Promise((resolve, reject) => {
+      documentClient.query(params, (error, data) => {
+        if (error) {
+          resolve({ error });
+        } else {
+          resolve({ data });
+        }
+      });
+    });
+    return result;
   },
-  async add(item, TableName) {
+
+  async addPost(bodyData, TableName, postImageBucket) {
+    let result1, result2, finalResult;
+    const imageList = bodyData.imageList;
+    const postId = bodyData.post.postId;
+    const userId = bodyData.post.userId;
+
+    imageList.map(image => {
+      const bufferedData = new Buffer.from(image.id, "base64");
+      const imageParams = {
+        Bucket: postImageBucket,
+        Key: `user/${userId}/post/${postId}/${image.filename}`,
+        Body: bufferedData,
+        ContentType: `image/jpeg`,
+        ContentEncoding: "base64",
+        ACL: "public-read"
+      };
+      result2 = new Promise((resolve, reject) => {
+        s3Client.putObject(imageParams, (error, data) => {
+          if (error) {
+            resolve({ error });
+          } else {
+            resolve({ data });
+          }
+        });
+      });
+    });
+
     const params = {
       TableName,
-      Item: item,
+      Item: bodyData.post,
       ReturnValues: "ALL_OLD"
     };
-    const result = await new Promise((resolve, reject) => {
+
+    result1 = new Promise((resolve, reject) => {
       documentClient.put(params, (error, data) => {
         if (error) {
           resolve({ error });
@@ -34,7 +68,9 @@ const Dynamo = {
         }
       });
     });
-    return result;
+
+    finalResult = await Promise.all([result1, result2]);
+    return finalResult;
   }
 };
 

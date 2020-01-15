@@ -1,11 +1,15 @@
 const Response = require("../templates/API_Responses");
 const Dynamo = require("../templates/Dynamo");
 const tableName = process.env.tableName;
-const postImageBucket = process.env.postImageBucket;
 
 exports.handler = async event => {
-  const bodyData = JSON.parse(event.body);
-  const result = await Dynamo.addPost(bodyData, tableName, postImageBucket);
+  const idParameter = event.pathParameters;
+  if (!idParameter || !idParameter.ID) {
+    return Response._400({ message: "Missing ID from the path!" });
+  }
+
+  let ID = idParameter.ID;
+  const result = await Dynamo.getUserPost(ID, tableName);
   if (result.error) {
     console.log(Response._400({ Error: result.error }));
     return Response._400({ Error: result.error });

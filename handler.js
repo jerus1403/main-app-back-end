@@ -1,15 +1,14 @@
 "use strict";
 const AWS = require("aws-sdk");
 const s3 = new AWS.S3();
-const url = require("url");
 const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+const profileBucket = process.env.profileBucket;
 
 module.exports.requestUploadURL = (req, res, callback) => {
   const jsonData = JSON.parse(req.body);
   const bufferedData = new Buffer.from(jsonData.data, "base64");
-  console.log(jsonData, "DATA");
   const params = {
-    Bucket: "profile-image-main-app",
+    Bucket: profileBucket,
     Key: jsonData.name,
     Body: bufferedData,
     ContentType: `image/${jsonData.type}`,
