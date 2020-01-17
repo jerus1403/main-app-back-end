@@ -4,6 +4,26 @@ const s3Client = new AWS.S3();
 const documentClient = new AWS.DynamoDB.DocumentClient();
 
 const Dynamo = {
+  async getSinglePost(postId, TableName) {
+    const params = {
+      TableName,
+      KeyConditionExpression: "postId = :postId",
+      ExpressionAttributeValues: {
+        ":postId": postId
+      }
+    };
+    const result = await new Promise((resolve, reject) => {
+      documentClient.query(params, (error, data) => {
+        if (error) {
+          resolve({ error });
+        } else {
+          resolve({ data });
+        }
+      });
+    });
+    return result;
+  },
+
   async getUserPost(ID, TableName) {
     const params = {
       TableName,

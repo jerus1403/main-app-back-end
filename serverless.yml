@@ -105,6 +105,13 @@ functions:
           path: get-user-posts/{ID}
           method: GET
           cors: true
+  getSinglePost:
+    handler: lambdas/endpoints/getSinglePost.handler
+    events:
+      - http:
+          path: get-single-posts/{postId}
+          method: GET
+          cors: true
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
