@@ -98,6 +98,13 @@ functions:
           path: add-post
           method: POST
           cors: true
+  deletePost:
+    handler: lambdas/endpoints/deletePost.handler
+    events:
+      - http:
+          path: delete-post
+          method: DELETE
+          cors: true
   getUserPost:
     handler: lambdas/endpoints/getUserPost.handler
     events:
@@ -105,12 +112,12 @@ functions:
           path: get-user-posts/{ID}
           method: GET
           cors: true
-  getSinglePost:
-    handler: lambdas/endpoints/getSinglePost.handler
+  getAllPosts:
+    handler: lambdas/endpoints/getAllPosts.handler
     events:
       - http:
-          path: get-single-posts/{postId}
-          method: GET
+          path: get-all-posts
+          method: POST
           cors: true
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

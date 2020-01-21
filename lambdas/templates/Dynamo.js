@@ -4,19 +4,27 @@ const s3Client = new AWS.S3();
 const documentClient = new AWS.DynamoDB.DocumentClient();
 
 const Dynamo = {
-  async getSinglePost(postId, TableName) {
+  async getAllPosts(bodyData, TableName) {
+    const latitude = bodyData.latitude;
+    const longitude = bodyData.longitude;
+    console.log(bodyData, "BODY DYNAMO");
+    console.log(latitude, "lAT DYNAMO");
+    console.log(longitude, "LNG DYNAMO");
     const params = {
       TableName,
-      KeyConditionExpression: "postId = :postId",
+      KeyConditionExpression: "latitude = :latitude and longitude = :longitude",
       ExpressionAttributeValues: {
-        ":postId": postId
+        ":latitude": latitude,
+        ":longitude": longitude
       }
     };
     const result = await new Promise((resolve, reject) => {
       documentClient.query(params, (error, data) => {
         if (error) {
+          console.log(params, "DYNAMO PARAMS");
           resolve({ error });
         } else {
+          console.log(params, "DYNAMO PARAMS");
           resolve({ data });
         }
       });
@@ -65,8 +73,10 @@ const Dynamo = {
       result2 = new Promise((resolve, reject) => {
         s3Client.putObject(imageParams, (error, data) => {
           if (error) {
+            console.log(error, "ERROR IMAGE LIST");
             resolve({ error });
           } else {
+            console.log(data, "DATA IMAGE LIST");
             resolve({ data });
           }
         });
@@ -82,8 +92,10 @@ const Dynamo = {
     result1 = new Promise((resolve, reject) => {
       documentClient.put(params, (error, data) => {
         if (error) {
+          console.log(error, "ERROR PUT OBJECT");
           resolve({ error });
         } else {
+          console.log(data, "DATA PUT OBJECT");
           resolve(params.Item);
         }
       });
@@ -91,6 +103,66 @@ const Dynamo = {
 
     finalResult = await Promise.all([result1, result2]);
     return finalResult;
+  },
+
+  async deletePost(bodyData, TableName, postImageBucket) {
+    let final_response, dynamo_response, bucket_response;
+
+    const postId = bodyData.postId,
+      userId = bodyData.userId,
+      imgPathList = bodyData.imgPathList;
+
+    const postParams = {
+      TableName,
+      Key: {
+        postId: postId,
+        userId: userId
+      }
+    };
+
+    console.log(postParams, "POST PARAMSSSSSSSS");
+
+    //DELETE ITEM FROM DYNAMO by POST ID
+    dynamo_response = new Promise((resolve, reject) => {
+      documentClient.delete(postParams, (err, data) => {
+        if (err) {
+          console.log(err, "ERROR DELETE POST DYNAMO");
+          resolve({ err });
+        } else {
+          console.log(data, "DATA DELETE POST DYNAMO");
+          resolve({ data });
+        }
+      });
+    });
+
+    // DELETE IMAGEs FROM AN OBJECT by POST ID
+    imgPathList.map(image => {
+      const imageParams = {
+        Bucket: postImageBucket,
+        Delete: {
+          Objects: [
+            {
+              Key: `user/${userId}/post/${postId}/${image.filename}`
+            }
+          ]
+        }
+      };
+      console.log(imageParams, "IMAGE PARAMSSSSSSSS");
+      bucket_response = new Promise((resolve, reject) => {
+        s3Client.deleteObjects(imageParams, (err, data) => {
+          if (err) {
+            console.log(err, "ERROR DELETE BUCKET");
+            resolve({ err });
+          } else {
+            console.log(data, "DATA DELETE BUCKET");
+            resolve({ data });
+          }
+        });
+      });
+    });
+
+    final_response = await Promise.all([dynamo_response, bucket_response]);
+    return final_response;
   }
 };
 
