@@ -45,8 +45,12 @@ const Dynamo = {
     const result = await new Promise((resolve, reject) => {
       documentClient.query(params, (error, data) => {
         if (error) {
+          console.log(params, "PARAMSSSS");
+          console.log(error, "ERRORRRR");
           resolve({ error });
         } else {
+          console.log(params, "PARAMSSSS");
+          console.log(data, "DATAAAA");
           resolve({ data });
         }
       });

@@ -78,19 +78,20 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-  requestUploadURL:
-    handler: handler.requestUploadURL
+  addProfileImage:
+    handler: lambdas/endpoints/addProfileImage.handler
     events:
       - http:
-          path: requestUploadURL
+          path: add-profile-image
           method: POST
           cors: true
-  # getUserProfileImageURL:
-  #   handler: handler.getUserProfileImageURL
-  #   events:
-  #     - http:
-  #         path: getUserProfileImageURL
-  #         method: get
+  getProfileImage:
+    handler: lambdas/endpoints/getProfileImage.handler
+    events:
+      - http:
+          path: get-profile-image/{userId}
+          method: get
+          cors: true
   addPost:
     handler: lambdas/endpoints/addPost.handler
     events:
