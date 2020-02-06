@@ -45,8 +45,12 @@ const Dynamo = {
     const result = await new Promise((resolve, reject) => {
       documentClient.query(params, (error, data) => {
         if (error) {
+          console.log(params, "PARAMSSSS");
+          console.log(error, "ERRORRRR");
           resolve({ error });
         } else {
+          console.log(params, "PARAMSSSS");
+          console.log(data, "DATAAAA");
           resolve({ data });
         }
       });
@@ -61,7 +65,7 @@ const Dynamo = {
     const userId = bodyData.post.userId;
 
     imageList.map(image => {
-      const bufferedData = new Buffer.from(image.id, "base64");
+      const bufferedData = new Buffer.from(image.base64, "base64");
       const imageParams = {
         Bucket: postImageBucket,
         Key: `user/${userId}/post/${postId}/${image.filename}`,
